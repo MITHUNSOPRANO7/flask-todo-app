@@ -34,8 +34,11 @@ pipeline {
                     done
                 '''
                 echo 'Waiting for Flask app to be ready...'
-                sh 'sleep 5'
-                sh 'docker exec flask_app curl -f http://localhost:5000 || exit 1'
+                sh 'sleep 10'
+                echo 'Checking Flask app logs...'
+                sh 'docker logs flask_app'
+                echo 'Testing Flask app...'
+                sh 'docker exec flask_app curl -f http://localhost:5000 || (docker logs flask_app && exit 1)'
                 echo 'Tests passed!'
             }
         }
