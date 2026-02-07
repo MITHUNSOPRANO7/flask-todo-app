@@ -25,9 +25,18 @@ pipeline {
             steps {
                 echo 'Running tests...'
                 sh 'docker-compose up -d'
-                sh 'sleep 20'
+                echo 'Waiting for MySQL to be ready...'
+                sh '''
+                    for i in {1..30}; do
+                        docker exec mysql_db mysqladmin ping -h localhost -u root -prootpassword --silent && break
+                        echo "Waiting for MySQL... attempt $i"
+                        sleep 2
+                    done
+                '''
+                echo 'Waiting for Flask app to be ready...'
+                sh 'sleep 5'
                 sh 'curl -f http://localhost:5000 || exit 1'
-                sh 'docker-compose down'
+                echo 'Tests passed!'
             }
         }
         
