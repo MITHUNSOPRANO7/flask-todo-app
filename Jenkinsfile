@@ -25,7 +25,7 @@ pipeline {
             steps {
                 echo 'Running tests...'
                 sh 'docker-compose up -d'
-                sh 'sleep 10'
+                sh 'sleep 20'
                 sh 'curl -f http://localhost:5000 || exit 1'
                 sh 'docker-compose down'
             }
