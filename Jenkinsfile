@@ -25,12 +25,13 @@ pipeline {
         echo "Running tests..."
 
         sh """
-        docker rm -f mysql_db || true
+        docker rm -f mysql_db flask_app || true
         docker-compose down -v || true
         docker-compose up -d --remove-orphans
         """
     }
 }
+
          
 
         
