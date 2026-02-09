@@ -2,65 +2,55 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = 'flask-todo-app'
-        DOCKER_TAG = "${BUILD_NUMBER}"
+        EC2_HOST = '16.171.142.62'
+        EC2_USER = 'ubuntu'
+        PROJECT_DIR = '/home/ubuntu/flask-todo-app'
     }
     
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out code from GitHub...'
-                checkout scm
+                git branch: 'main', url: 'https://github.com/MITHUNSOPRANO7/flask-todo-app.git'
             }
         }
         
         stage('Build Docker Images') {
             steps {
-                echo 'Building Docker images...'
-                sh 'docker-compose build'
-            }
-        }
-       stage('Run Tests') {
-    steps {
-        echo "Running tests..."
-
-        sh """
-        docker rm -f mysql_db flask_app || true
-        docker-compose down -v || true
-        docker-compose up -d --remove-orphans
-        """
-    }
-}
-
-         
-
-        
-        stage('Push to Registry') {
-            steps {
-                echo 'Ready for deployment'
-                // We'll add Docker Hub push later for AWS
+                script {
+                    sh 'docker-compose build'
+                }
             }
         }
         
-        stage('Deploy') {
+        stage('Deploy to EC2') {
             steps {
-                echo 'Deploying application...'
-                sh 'docker-compose down || true'
-                sh 'docker-compose up -d'
+                script {
+                    sh """
+                        scp -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no docker-compose.yml ${EC2_USER}@${EC2_HOST}:${PROJECT_DIR}/
+                        scp -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no Dockerfile ${EC2_USER}@${EC2_HOST}:${PROJECT_DIR}/
+                        scp -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no requirements.txt ${EC2_USER}@${EC2_HOST}:${PROJECT_DIR}/
+                        scp -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no app.py ${EC2_USER}@${EC2_HOST}:${PROJECT_DIR}/
+                        scp -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no init.sql ${EC2_USER}@${EC2_HOST}:${PROJECT_DIR}/
+                        scp -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no -r templates ${EC2_USER}@${EC2_HOST}:${PROJECT_DIR}/
+                        
+                        ssh -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+                            cd /home/ubuntu/flask-todo-app
+                            docker-compose down
+                            docker-compose up -d --build
+                            docker ps
+                        '
+                    """
+                }
             }
         }
     }
     
     post {
         success {
-            echo 'Pipeline executed successfully!'
+            echo 'Deployment to EC2 successful!'
         }
         failure {
-            echo 'Pipeline failed!'
-        }
-        always {
-            echo 'Cleaning up...'
-            sh 'docker-compose down || true'
+            echo 'Deployment failed!'
         }
     }
 }
