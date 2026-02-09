@@ -14,14 +14,6 @@ pipeline {
             }
         }
         
-        stage('Build Docker Images') {
-            steps {
-                script {
-                    sh 'docker-compose build'
-                }
-            }
-        }
-        
         stage('Deploy to EC2') {
             steps {
                 script {
@@ -34,7 +26,7 @@ pipeline {
                         scp -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no -r templates ${EC2_USER}@${EC2_HOST}:${PROJECT_DIR}/
                         
                         ssh -i /var/jenkins_home/flask-todo-key.pem -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
-                            cd /home/ubuntu/flask-todo-app
+                            cd ${PROJECT_DIR}
                             docker-compose down
                             docker-compose up -d --build
                             docker ps
@@ -47,10 +39,10 @@ pipeline {
     
     post {
         success {
-            echo 'Deployment to EC2 successful!'
+            echo '✅ Deployment to EC2 successful!'
         }
         failure {
-            echo 'Deployment failed!'
+            echo '❌ Deployment failed!'
         }
     }
 }
